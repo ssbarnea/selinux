@@ -1,5 +1,14 @@
 ---
 # zuul.d/layout.yaml
+- job:
+    name: ansible-tox-distros
+    description: |
+      Test that packaged module installs successfully on all supported
+      platforms by using docker containers orchestrated by molecule.
+    parent: ansible-tox-py37
+    vars:
+      tox_envlist: distros
+
 - project:
     check:
       jobs: &defaults
@@ -7,9 +16,15 @@
             vars:
               tox_envlist: lint,dist
         - ansible-tox-py27
-        - ansible-tox-py35
         - ansible-tox-py36
         - ansible-tox-py37
-        - ansible-tox-py38
+        # tier 2 : runs only after first one passes
+        - ansible-tox-distros: &tier2
+            dependencies:
+              - ansible-tox-linters
+              - ansible-tox-py27
+              - ansible-tox-py38
+        - ansible-tox-py35: *tier2
+        - ansible-tox-py38: *tier2
     gate:
       jobs: *defaults
